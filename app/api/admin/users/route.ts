@@ -1,10 +1,13 @@
 import { NextRequest } from "next/server";
 import { getStore, generateId } from "@/lib/store";
-import { hashPassword } from "@/lib/auth";
-import { requireRole } from "@/lib/auth";
+import { hashPassword, requireRole } from "@/lib/auth";
 import type { Role } from "@/lib/types";
 
-export async function GET(req: NextRequest) {
+// Next.js 16 route handlers type params as a Promise in the context.
+// This route doesn't use params, but we accept context to satisfy the contract.
+type RouteCtx = { params?: Promise<Record<string, string>> };
+
+export async function GET(req: NextRequest, _ctx: RouteCtx) {
   requireRole(req, ["ADMIN"]);
   const store = getStore();
 
@@ -19,7 +22,7 @@ export async function GET(req: NextRequest) {
   return Response.json({ users });
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest, _ctx: RouteCtx) {
   requireRole(req, ["ADMIN"]);
   const body = await req.json().catch(() => null);
 
@@ -69,6 +72,6 @@ export async function POST(req: NextRequest) {
       role: user.role,
       isSuspended: user.isSuspended,
     },
-    { status: 201 },
+    { status: 201 }
   );
 }
