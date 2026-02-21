@@ -1,21 +1,28 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getStore } from "@/lib/store";
 import { requireAuth } from "@/lib/auth";
+import { handleApiError } from "@/lib/api-utils";
 
-interface RouteParams {
-  params: { id: string };
+interface RouteCtx {
+  params: Promise<{ id: string }>;
 }
 
-export async function GET(req: NextRequest, { params }: RouteParams) {
-  const user = requireAuth(req);
-  const store = getStore();
-  const conv = store.conversations.find((c) => c.id === params.id);
+export async function GET(req: NextRequest, { params }: RouteCtx) {
+  try {
+    const user = await requireAuth(req);
+    const { id } = await params;
+    const store = getStore();
+    const conv = store.conversations.find((c) => c.id === id);
 
-  if (!conv || !conv.participantIds.includes(user.id)) {
-    return Response.json({ message: "Not found" }, { status: 404 });
+    if (!conv || !conv.participantIds.includes(user.id)) {
+      return NextResponse.json({ message: "Not found" }, { status: 404 });
+    }
+
+    const messages = store.messages.filter((m) => m.conversationId === conv.id);
+
+    return NextResponse.json({ conversation: conv, messages });
+  } catch (e) {
+    return handleApiError(e);
   }
-
-  const messages = store.messages.filter((m) => m.conversationId === conv.id);
-
-  return Response.json({ conversation: conv, messages });
 }
+

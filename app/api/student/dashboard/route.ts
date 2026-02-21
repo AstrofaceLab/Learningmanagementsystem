@@ -1,16 +1,22 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getStore } from "@/lib/store";
 import { requireRole } from "@/lib/auth";
+import { handleApiError } from "@/lib/api-utils";
 
 export async function GET(req: NextRequest) {
-  const student = requireRole(req, ["STUDENT"]);
-  const store = getStore();
+  try {
+    const student = await requireRole(req, ["STUDENT"]);
+    const store = getStore();
 
-  const enrollments = store.enrollments.filter((e) => e.studentId === student.id);
-  const courses = store.courses.filter((c) => enrollments.some((e) => e.courseId === c.id));
+    const enrollments = store.enrollments.filter((e) => e.studentId === student.id);
+    const courses = store.courses.filter((c) => enrollments.some((e) => e.courseId === c.id));
 
-  return Response.json({
-    enrollments,
-    courses,
-  });
+    return NextResponse.json({
+      enrollments,
+      courses,
+    });
+  } catch (e) {
+    return handleApiError(e);
+  }
 }
+
